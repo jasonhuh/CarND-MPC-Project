@@ -98,8 +98,28 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          double steer_value;
-          double throttle_value;
+          //auto TransformedWayPoints = STran
+          //const int n = ptsx.size();
+          Eigen::MatrixXd Coords(ptsx.size(),2);
+          Coords << Eigen::Map<const Eigen::VectorXd>(ptsx.data(), ptsx.size()),
+              Eigen::Map<const Eigen::VectorXd>(ptsy.data(), ptsy.size());
+
+          Coords.rowwise() -= Eigen::RowVector2d(px, py);
+
+          Eigen::Matrix2d T;
+          T << cos(-psi), -sin(-psi), -sin(-psi), -cos(-psi);
+          Eigen::MatrixXd transformedWayPoints = Coords * T.transpose();
+
+          const auto coeffs = polyfit(transformedWayPoints.col(0), transformedWayPoints.col(1), 3);
+          const double cte = polyeval(coeffs, 0);
+          const double epsi = -atan(coeffs(1));
+
+          Eigen::VectorXd state(6);
+          state << 0, 0, 0, v, cte, epsi;
+          auto ans = mpc.Solve(state, coeffs);
+          double steer_angle = ans[0];
+          double steer_value = rad2deg(steer_angle) / 25;
+          double throttle_value = ans[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
