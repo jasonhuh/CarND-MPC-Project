@@ -7,8 +7,8 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 25;
-double dt = 0.05;
+size_t N = 15;
+double dt = 0.10;
 
 const int x_start = 0;
 const int y_start = x_start + N;
@@ -80,26 +80,26 @@ class FG_eval {
       fg[1 + cte_start] = vars[cte_start];
       fg[1 + epsi_start] = vars[epsi_start];
 
-      for (int i = 1; i < N; ++i) {
+      for (int i = 0; i < N - 1; ++i) {
         // The state at time i+1 .
-        AD<double> x1 = vars[x_start + i];
-        AD<double> y1 = vars[y_start + i];
-        AD<double> psi1 = vars[psi_start + i];
-        AD<double> v1 = vars[v_start + i];
-        AD<double> cte1 = vars[cte_start + i];
-        AD<double> epsi1 = vars[epsi_start + i];
+        AD<double> x1 = vars[x_start + i + 1];
+        AD<double> y1 = vars[y_start + i + 1];
+        AD<double> psi1 = vars[psi_start + i + 1];
+        AD<double> v1 = vars[v_start + i + 1];
+        AD<double> cte1 = vars[cte_start + i + 1];
+        AD<double> epsi1 = vars[epsi_start + i + 1];
 
         // The state at time i.
-        AD<double> x0 = vars[x_start + i - 1];
-        AD<double> y0 = vars[y_start + i - 1];
-        AD<double> psi0 = vars[psi_start + i - 1];
-        AD<double> v0 = vars[v_start + i - 1];
-        AD<double> cte0 = vars[cte_start + i - 1];
-        AD<double> epsi0 = vars[epsi_start + i - 1];
+        AD<double> x0 = vars[x_start + i];
+        AD<double> y0 = vars[y_start + i];
+        AD<double> psi0 = vars[psi_start + i];
+        AD<double> v0 = vars[v_start + i];
+        AD<double> cte0 = vars[cte_start + i];
+        AD<double> epsi0 = vars[epsi_start + i];
 
         // Only consider the actuation at time i.
-        AD<double> delta0 = vars[delta_start + i - 1];
-        AD<double> a0 = vars[a_start + i - 1];
+        AD<double> delta0 = vars[delta_start + i];
+        AD<double> a0 = vars[a_start + i];
 
         AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * CppAD::pow(x0, 2) + coeffs[3] * CppAD::pow(x0, 3);
         AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * CppAD::pow(x0, 2)); //
@@ -114,14 +114,12 @@ class FG_eval {
         // v_[t] = v[t-1] + a[t-1] * dt
         // cte[t] = f(x[t-1]) - y[t-1] + v[t-1] * sin(epsi[t-1]) * dt
         // epsi[t] = psi[t] - psides[t-1] + v[t-1] * delta[t-1] / Lf * dt
-        fg[1 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
-        fg[1 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-        fg[1 + psi_start + i] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
-        fg[1 + v_start + i] = v1 - (v0 + a0 * dt);
-        fg[1 + cte_start + i] =
-            cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-        fg[1 + epsi_start + i] =
-            epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+        fg[2 + x_start + i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+        fg[2 + y_start + i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+        fg[2 + psi_start + i] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+        fg[2 + v_start + i] = v1 - (v0 + a0 * dt);
+        fg[2 + cte_start + i] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+        fg[2 + epsi_start + i] = epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
       }
     }
 };
@@ -169,15 +167,15 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   Dvector vars_upperbound(n_vars);
   // TODO: Set lower and upper limits for variables.
   for (int i = 0; i < delta_start; ++i) {
-    vars_lowerbound[i] = -1.0e19;
-    vars_upperbound[i] = 1.0e19;
+    vars_lowerbound[i] = - std::numeric_limits<double>::max();// -1.0e19;
+    vars_upperbound[i] = std::numeric_limits<double>::max();; //1.0e19;
   }
 
   // Delta limits: +/- 25
-  const double DELTA_LIMIT = 15 * M_PI / 180.0;
+  //const double DELTA_LIMIT = 15 * M_PI / 180.0;
   for (int i = delta_start; i < a_start; ++i) {
-    vars_lowerbound[i] = - DELTA_LIMIT;
-    vars_upperbound[i] = DELTA_LIMIT;
+    vars_lowerbound[i] = -1.;// DELTA_LIMIT;
+    vars_upperbound[i] = 1.;//DELTA_LIMIT;
   }
 
   // Acceleration upper and lower limit

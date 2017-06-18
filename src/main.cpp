@@ -115,6 +115,7 @@ int main() {
           const double epsi = -atan(coeffs(1));
 
           Eigen::VectorXd state(6);
+          //state << 0, 0, 0, v, cte, epsi;
           state << 0, 0, 0, v, cte, epsi;
           auto ans = mpc.Solve(state, coeffs);
           double steer_angle = ans[0];
@@ -134,6 +135,15 @@ int main() {
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
+          for (int i = 2; i < ans.size(); i ++) {
+            if (i % 2 == 0) {
+              mpc_x_vals.push_back(ans[i]);
+            }
+            else {
+              mpc_y_vals.push_back(-ans[i]);
+            }
+          }
+
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
@@ -143,6 +153,11 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
+
+          for (double i = 0; i < 100; i += 3){
+            next_x_vals.push_back(i);
+            next_y_vals.push_back(-polyeval(coeffs, i));
+          }
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
