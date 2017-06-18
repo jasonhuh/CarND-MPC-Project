@@ -115,7 +115,7 @@ int main() {
           const double epsi = -atan(coeffs(1));
 
           Eigen::VectorXd state(6);
-          //state << 0, 0, 0, v, cte, epsi;
+
           state << 0, 0, 0, v, cte, epsi;
           auto ans = mpc.Solve(state, coeffs);
           double steer_angle = ans[0];

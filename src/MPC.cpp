@@ -7,7 +7,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 15;
+size_t N = 10;
 double dt = 0.10;
 
 const int x_start = 0;
