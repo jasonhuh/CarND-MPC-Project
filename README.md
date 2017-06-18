@@ -22,8 +22,10 @@ I chose `N` and `dt` values such that the vehicle drives smoothly around the tra
 
 
 ### Polynomial Fitting and MPC Preprocessing
+As shown on main.cpp lines 108-111, I preprocessed waypoints by converting and transforming the waypoints to the vehicle's perspective. This simplifies the polynomial fitting as the vehicle's `x`, `y`, and `psi` becomes all zero (main.cpp lines 119). 
 
 ### Model Predictive Control with Latency
+TBD
 
 ---
 
