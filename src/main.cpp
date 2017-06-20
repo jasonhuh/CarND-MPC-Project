@@ -65,6 +65,20 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
+Eigen::MatrixXd GetVehiclePerspective(const vector<double> ptsx, const vector<double> ptsy,
+      const double px, const double py, const double psi) {
+
+  Eigen::MatrixXd Coords(ptsx.size(),2);
+  Coords << Eigen::Map<const Eigen::VectorXd>(ptsx.data(), ptsx.size()),
+      Eigen::Map<const Eigen::VectorXd>(ptsy.data(), ptsy.size());
+
+  Coords.rowwise() -= Eigen::RowVector2d(px, py);
+
+  Eigen::Matrix2d T;
+  T << cos(-psi), -sin(-psi), -sin(-psi), -cos(-psi);
+  return Coords * T.transpose();
+}
+
 int main() {
   uWS::Hub h;
 
@@ -98,35 +112,57 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          //auto TransformedWayPoints = STran
-          //const int n = ptsx.size();
-          Eigen::MatrixXd Coords(ptsx.size(),2);
-          Coords << Eigen::Map<const Eigen::VectorXd>(ptsx.data(), ptsx.size()),
-              Eigen::Map<const Eigen::VectorXd>(ptsy.data(), ptsy.size());
+          for (int i = 0; i < ptsx.size(); i++ )
+          {
 
-          Coords.rowwise() -= Eigen::RowVector2d(px, py);
+            //shift car reference angle to 90 degrees
+            double shift_x = ptsx[i]-px;
+            double shift_y = ptsy[i]-py;
 
-          Eigen::Matrix2d T;
-          T << cos(-psi), -sin(-psi), -sin(-psi), -cos(-psi);
-          Eigen::MatrixXd transformedWayPoints = Coords * T.transpose();
+            ptsx[i] = (shift_x *cos(0-psi)-shift_y*sin(0-psi));
+            ptsy[i] = (shift_x *sin(0-psi)+shift_y*cos(0-psi));
+          }
 
-          const auto coeffs = polyfit(transformedWayPoints.col(0), transformedWayPoints.col(1), 3);
+
+          double* ptrx = &ptsx[0];
+          Eigen::Map<Eigen::VectorXd> ptsx_transform(ptrx, 6);
+
+          double* ptry = &ptsy[0];
+          Eigen::Map<Eigen::VectorXd> ptsy_transform(ptry, 6);
+
+          auto coeffs = polyfit(ptsx_transform, ptsy_transform, 3);
+
           const double cte = polyeval(coeffs, 0);
           const double epsi = -atan(coeffs(1));
 
-          Eigen::VectorXd state(6);
+          double steer_value = j[1]["steering_angle"];
+          double throttle_value = j[1]["throttle"];
 
-          state << 0, 0, 0, v, cte, epsi;
+          double delay_t = .1;
+          const double Lf = 2.67;
+
+          //factor in delay
+          double delay_x = v*delay_t;
+          double delay_y = 0;
+          double delay_psi = -v*steer_value / Lf * delay_t;
+          double delay_v = v + throttle_value*delay_t;
+          double delay_cte = cte + v*sin(epsi)*delay_t;
+          double delay_epsi = epsi-v*steer_value /Lf * delay_t;
+
+
+          Eigen::VectorXd state(6);
+          state << delay_x, delay_y, delay_psi, delay_v, delay_cte, delay_epsi;
+
+//          Eigen::VectorXd state(6);
+//
+//          state << 0, 0, 0, v, cte, epsi;
           auto ans = mpc.Solve(state, coeffs);
-          double steer_angle = ans[0];
-          double steer_value = rad2deg(steer_angle) / 25;
-          double throttle_value = ans[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = throttle_value;
+          msgJson["steering_angle"] = ans[0];
+          msgJson["throttle"] = ans[1];
 
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
@@ -140,7 +176,7 @@ int main() {
               mpc_x_vals.push_back(ans[i]);
             }
             else {
-              mpc_y_vals.push_back(-ans[i]);
+              mpc_y_vals.push_back(ans[i]);
             }
           }
 
@@ -156,7 +192,7 @@ int main() {
 
           for (double i = 0; i < 100; i += 3){
             next_x_vals.push_back(i);
-            next_y_vals.push_back(-polyeval(coeffs, i));
+            next_y_vals.push_back(polyeval(coeffs, i));
           }
 
           msgJson["next_x"] = next_x_vals;
