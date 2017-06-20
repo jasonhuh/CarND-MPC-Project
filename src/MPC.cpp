@@ -33,9 +33,9 @@ const double Lf = 2.67;
 
 class FG_eval {
   private:
-    const double ref_cte_ = 0;
-    const double ref_epsi_ = 0;
-    const double ref_v_ = 70;
+    const double ref_cte_ = 0.0;
+    const double ref_epsi_ = 0.0;
+    const double ref_v_ = 70.0;
   public:
 
     // Fitted polynomial coefficients
@@ -56,20 +56,20 @@ class FG_eval {
 
       // The part of the cost based on the reference state
       for (auto i = 0; i < N; ++i) {
-        fg[0] += 2000 * CppAD::pow(vars[cte_start + i], 2);
-        fg[0] += 2000 * CppAD::pow(vars[epsi_start + i], 2);
+        fg[0] += 1000 * CppAD::pow(vars[cte_start + i] - ref_cte_, 2);
+        fg[0] += 1000 * CppAD::pow(vars[epsi_start + i] - ref_epsi_, 2);
         fg[0] += CppAD::pow(vars[v_start + i] - ref_v_, 2);
       }
 
       // Minimize the use of actuators
       for (auto i = 0; i < N - 1; ++i) {
-        fg[0] += 5 * CppAD::pow(vars[delta_start + i], 2);
-        fg[0] += 5 * CppAD::pow(vars[a_start + i], 2);
+        fg[0] += 4 * CppAD::pow(vars[delta_start + i], 2);
+        fg[0] += 4 * CppAD::pow(vars[a_start + i], 2);
       }
 
       // Minimize the value gap between sequential actuations
       for (int i = 0; i < N - 2; ++i) {
-        fg[0] += 200 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+        fg[0] += 100 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
         fg[0] += 10 * CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
       }
 
@@ -119,7 +119,7 @@ class FG_eval {
         fg[2 + psi_start + i] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
         fg[2 + v_start + i] = v1 - (v0 + a0 * dt);
         fg[2 + cte_start + i] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-        fg[2 + epsi_start + i] = epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+        fg[2 + epsi_start + i] = epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * dt);
       }
     }
 };
