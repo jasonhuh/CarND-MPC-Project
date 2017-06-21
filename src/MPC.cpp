@@ -33,7 +33,7 @@ const double Lf = 2.67;
 
 class FG_eval {
   private:
-    const double ref_v_ = 70.0; // Vehicle's top speed
+    const double ref_v_ = 100.0; // Vehicle's top speed
   public:
 
     // Fitted polynomial coefficients
@@ -46,7 +46,7 @@ class FG_eval {
 
     typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
     void operator()(ADvector& fg, const ADvector& vars) {
-      // TODO: implement MPC
+      // Implement MPC
       // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
       // NOTE: You'll probably go back and forth between this function and
       // the Solver function below.
@@ -54,8 +54,8 @@ class FG_eval {
 
       // The part of the cost based on the reference state
       for (auto i = 0; i < N; ++i) {
-        fg[0] += 1000 * CppAD::pow(vars[cte_start + i], 2);
-        fg[0] += 1000 * CppAD::pow(vars[epsi_start + i], 2);
+        fg[0] += 2000 * CppAD::pow(vars[cte_start + i], 2);
+        fg[0] += 2000 * CppAD::pow(vars[epsi_start + i], 2);
         fg[0] += CppAD::pow(vars[v_start + i] - ref_v_, 2);
       }
 

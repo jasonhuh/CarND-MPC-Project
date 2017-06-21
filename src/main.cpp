@@ -65,28 +65,24 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
+// Calculate coefficient in vehicle space
 Eigen::VectorXd GetCoefficient(vector<double> ptsx, vector<double> ptsy,
       const double px, const double py, const double psi) {
 
+  // Create Eigen vectors from standard vector
+  Eigen::VectorXd ptsx2 = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
+  Eigen::VectorXd ptsy2 = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
+
+  // Convert to vehicle space
   for (size_t i = 0; i < ptsx.size(); ++i)
   {
-
-    //shift car reference angle to 90 degrees
-    double shift_x = ptsx[i]-px;
-    double shift_y = ptsy[i]-py;
-
-    ptsx[i] = (shift_x *cos(0-psi)-shift_y*sin(0-psi));
-    ptsy[i] = (shift_x *sin(0-psi)+shift_y*cos(0-psi));
+    double x = ptsx2[i] - px;
+    double y = ptsy2[i] - py;
+    ptsx2[i] = x * cos(psi) + y * sin(psi);
+    ptsy2[i] = -x * sin(psi) + y * cos(psi);
   }
 
-
-  double* ptrx = &ptsx[0];
-  Eigen::Map<Eigen::VectorXd> ptsx_transform(ptrx, 6);
-
-  double* ptry = &ptsy[0];
-  Eigen::Map<Eigen::VectorXd> ptsy_transform(ptry, 6);
-
-  return polyfit(ptsx_transform, ptsy_transform, 3);
+  return polyfit(ptsx2, ptsy2, 3);
 }
 
 int main() {
