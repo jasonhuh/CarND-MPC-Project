@@ -1,7 +1,46 @@
 # CarND-Controls-MPC
 Self-Driving Car Engineer Nanodegree Program
 
+[//]: # (Image References)
+
+[image_formula]: ./images/model_formula.png "Formula"
+
 ---
+## Implementation
+
+### The Model
+The model used in this project is a kinetic model which is a simplication of a dynamic model to ignore tire forces, gravity, and mass. The kinetic model leverages the vehicle's state such as `x` and `y` position, orientation (`psi`), velocity (`v`), cross-track error (`cte`) and orientation error (`epsi`). The output of the actuator contains acceleration and delta of steering angle. The model combines the vehicle's state and acuation from the previous timestamp to calculate the current state using the following equations:
+
+![model formula][image_formula]
+
+The model can be found in the `class FG_eval` in the MPC.cpp line 115-120.
+
+### Timestep Length and Elapsed Duration (N & dt)
+The product of timestep length `N` and elapsed duration `dt` is defined as the prediction horizon `T`, which is the duration over future predictions are made. As a general guideline, `T` should be as large as possible while `dt` should be as small as possible because larger `T` leads to smoother controls and smaller `dt` implies more accurate controls.
+
+I chose `N` and `dt` values such that the vehicle drives smoothly around the track. The values are `N = 10` and `dt =  0.10`. Values larger than `N = 15` or smaller than `N = 8` made the vehicle oscilate or unstable. Values tighter than `dt = 0.08` made the vehicle to respond too tightly causing the vehicle to jiggle.
+
+
+### Polynomial Fitting and MPC Preprocessing
+As shown on main.cpp lines 69-82, I preprocessed waypoints by converting and transforming the waypoints to the vehicle's perspective. This simplifies the polynomial fitting as the vehicle's `x`, `y`, and `psi` becomes all zero. 
+
+### Model Predictive Control with Latency
+As shown on main.cpp lines 133-141, I computed a new estimated state from a vehicle's original state by applying the following formula:
+```
+  // delay (latency): 100 milliseconds
+  x_delay = v * delay
+  psi_delay = - v * steer_value / Lf * delay
+  v_delay = v + throttle_value * delay
+  cte_delay = cte + v*sin(epsi) * delay
+  epsi_delay = epsi - v * steer_value / Lf * delay
+```
+Then, I used the above estimated state as the new initial state for MPC (line 144).
+---
+
+
+Here's a link to my video result:
+
+[![link to my video result](https://img.youtube.com/vi/Kq-PTF_fPJg/0.jpg)](https://www.youtube.com/watch?v=Kq-PTF_fPJg)
 
 ## Dependencies
 
