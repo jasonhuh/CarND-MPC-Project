@@ -33,9 +33,7 @@ const double Lf = 2.67;
 
 class FG_eval {
   private:
-    const double ref_cte_ = 0.0;
-    const double ref_epsi_ = 0.0;
-    const double ref_v_ = 70.0;
+    const double ref_v_ = 70.0; // Vehicle's top speed
   public:
 
     // Fitted polynomial coefficients
@@ -56,8 +54,8 @@ class FG_eval {
 
       // The part of the cost based on the reference state
       for (auto i = 0; i < N; ++i) {
-        fg[0] += 1000 * CppAD::pow(vars[cte_start + i] - ref_cte_, 2);
-        fg[0] += 1000 * CppAD::pow(vars[epsi_start + i] - ref_epsi_, 2);
+        fg[0] += 1000 * CppAD::pow(vars[cte_start + i], 2);
+        fg[0] += 1000 * CppAD::pow(vars[epsi_start + i], 2);
         fg[0] += CppAD::pow(vars[v_start + i] - ref_v_, 2);
       }
 
@@ -130,12 +128,11 @@ class FG_eval {
 MPC::MPC() {}
 MPC::~MPC() {}
 
-vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
+Solution MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   bool ok = true;
   size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
-  // TODO: Set the number of model variables (includes both states and inputs).
   // For example: If the state is a 4 element vector, the actuators is a 2
   // element vector and there are 10 timesteps. The number of variables is:
   //
@@ -151,34 +148,31 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   const int DIM_ACTUATORS = 2;
 
   // N timesteps = N - 1 actuations
-  size_t n_vars = N * DIM_STATE + (N - 1) * DIM_ACTUATORS;
-
-  // TODO: Set the number of constraints
-  size_t n_constraints = N * DIM_STATE;
+  const size_t n_vars = N * DIM_STATE + (N - 1) * DIM_ACTUATORS;
+  const size_t n_constraints = N * DIM_STATE;
 
   // Initial value of the independent variables.
   // SHOULD BE 0 besides initial state.
   Dvector vars(n_vars);
-  for (int i = 0; i < n_vars; i++) {
+  for (int i = 0; i < n_vars; ++i) {
     vars[i] = 0;
   }
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
-  // TODO: Set lower and upper limits for variables.
+  // Set lower and upper limits for variables.
   for (int i = 0; i < delta_start; ++i) {
     vars_lowerbound[i] = - std::numeric_limits<double>::max();
     vars_upperbound[i] = std::numeric_limits<double>::max();
   }
 
-  // Delta limits: +/- 25
-  //const double DELTA_LIMIT = 15 * M_PI / 180.0;
+  // Steering angle upper and lower limit
   for (int i = delta_start; i < a_start; ++i) {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 1.0;
   }
 
-  // Acceleration upper and lower limit
+  // Acceleration (Throttle) upper and lower limit
   for (int i = a_start; i < n_vars; ++i) {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 1.0;
@@ -244,17 +238,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   auto cost = solution.obj_value;
   std::cout << "Cost " << cost << std::endl;
 
-  // TODO: Return the first actuator values. The variables can be accessed with
-  // `solution.x[i]`.
-  //
-  // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
-  // creates a 2 element double vector.
-  vector<double> res { solution.x[delta_start], solution.x[a_start]};
+  // Return the first actuator values
+  Solution sol(solution.x[delta_start], solution.x[a_start]);
 
   for (int i = 0; i < N; ++i) {
-    res.push_back(solution.x[x_start + i]);
-    res.push_back(solution.x[y_start + i]);
+    sol.x_vals.push_back(solution.x[x_start + i]);
+    sol.y_vals.push_back(solution.x[y_start + i]);
   }
 
-  return res;
+  return sol;
 }
