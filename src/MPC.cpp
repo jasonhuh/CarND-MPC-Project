@@ -6,7 +6,7 @@
 
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration
+// Set the timestep length and duration
 size_t N = 10;
 double dt = 0.10;
 
@@ -39,9 +39,7 @@ class FG_eval {
     // Fitted polynomial coefficients
     Eigen::VectorXd coeffs;
     FG_eval(Eigen::VectorXd coeffs) {
-
       this->coeffs = coeffs;
-
     }
 
     typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
@@ -130,7 +128,6 @@ MPC::~MPC() {}
 
 Solution MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   bool ok = true;
-  size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
   // For example: If the state is a 4 element vector, the actuators is a 2
